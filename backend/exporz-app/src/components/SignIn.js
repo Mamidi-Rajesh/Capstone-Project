@@ -28,7 +28,7 @@ function SignIn(){
 
 
        //sending data to server
-       fetch("http://localhost:5000/signin",{
+       fetch("/signin",{
         method:"post",
         headers:{
             "Content-Type": "application/json"

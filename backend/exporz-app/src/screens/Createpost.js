@@ -1,109 +1,122 @@
-import React, {useEffect,useState} from "react";
-import "../css/Profile.css";
-import ProfilePic from "../components/ProfilePic";
+import React, { useEffect, useState } from "react";
+import "../css/Createpost.css";
+import { toast } from "react-toastify";
+import { useNavigate } from "react-router-dom";
 
-       // IMAGES
-// import rajesh_designs from "../img/rajesh designs logo.png";
-import PostDetail from "../components/postDetail";
-// import UserProfile from "./UserProfile";
+       //IMAGES
+//import pizza from "../img/food poster 2.png";
+import uploadimage from "../img/imageupload.png"
+import rajesh_designs from "../img/rajesh designs logo.png"; 
 
-function Profile(){
-    var picLink = "https://cdn-icons-png.flaticon.com/128/3177/3177440.png";
-    const [pic, setPic]= useState([]);
-    const [show, setShow]= useState(false);
-    const [posts, setPosts]= useState([]);
-    const [user, setUser] = useState("");
-    const [changePic, setChangePic] = useState(false);
-  
-    const toggleDetails = (posts)=>{
-      if(show){
-          setShow(false);
-      }else{
-          setShow(true);
-          setPosts(posts);
-          console.log(posts)
-      }
-     };
+function Createpost(){
+    const navigate = useNavigate();
+    const [body, setBody] = useState("");
+    const [image, setImage] = useState("");
+    const [url, setUrl] = useState("")
 
-     const changeprofile = ()=>{
-      if(changePic){
-        setChangePic(false)
-      }else{
-         setChangePic(true) 
-      }
-     }
+    //TOAST FUNCTION
+    const notifyA=(msg)=>toast.error(msg, {position: "top-center",})
+    const notifyB=(msg)=>toast.success(msg, {position: "top-center",})
 
 
+    useEffect(()=>{
+     //SAVING POST TO MONGODB
+     if(url){
+     fetch("/createPost", {
+        method: "post",
+        headers:{
+        "Content-Type":"application/json",
+        "Authorization": "Bearer " + localStorage.getItem("jwt")
+    },
+    body:JSON.stringify({
+        body,
+        pic: url
+    })
+    }).then(res=>res.json())
+    .then(data=>{if(data.error){
+        notifyA(data.error)
+    }else{
+        notifyB("Successfully Posted")
+        navigate("/")
+    }})
+    .catch(err=> console.log(err))
+}
+    },[url])
 
-      useEffect(()=>{
-        fetch(`http://localhost:5000/user/${JSON.parse(localStorage.getItem("user"))._id}`, {
-            headers: {
-                Authorization: "Bearer " + localStorage.getItem("jwt")
-            }
-          })
-          .then(res=>res.json())
-          .then((result)=>{
-            console.log(result);
-            setPic(result.post);
-            setUser(result.user)
-            console.log(pic)
-          })
-      },[])
+
+
+
+   // POSTING IMAGE TO CLOUDINARY
+    const postDetails = ()=> {
+        console.log(body,image);
+        const data = new FormData()
+        data.append("file", image)
+        data.append("upload_preset", "exporz-app")
+        data.append("clodu_name", "exporz-app")
+        fetch("https://api.cloudinary.com/v1_1/exporz-app/image/upload", {
+            method: "post",
+            body: data
+        }).then(res=>res.json())
+        .then(data => setUrl(data.url))
+        .catch(err => console.log(err))
+
+        
+    }
+
+    //ADDING PREVIEW
+    const loadfile = (event)=>{
+        var reader = new FileReader();
+        reader.onload = function(){
+          var output = document.getElementById('output');
+          output.src = reader.result;
+        };
+        reader.readAsDataURL(event.target.files[0]);
+    }
+
 
     return(
-       <div className="profile-page">
-         <div className="profile">
-            {/* Profile-section */}
-            <div className="profile-frame">
-
-                {/* profile-pic */}
-                <div className="profile-pic">
-                    <img onClick={changeprofile}
-                    src={user.Photo ? user.Photo : picLink} alt=""/>
-                </div>
-
-                {/* profile-data */}
-                <div className="profile-data">
-                    <h1>{JSON.parse(localStorage.getItem("user")).name}</h1>
-                    <div className="profile-info">
-                        <p style={{fontWeight: "bolder"}}>{pic ? pic.length : "0"} Posts</p>
-                        <p style={{fontWeight: "bolder"}}>{user.followers ? user.followers.length : "0"} followers</p>
-                        <p style={{fontWeight: "bolder"}}>{user.following ? user.following.length : "0"} following</p>
-                    </div>
-                    <hr style={{width:"120%",
-                                margin:" 25px auto",
-                                opacity:"0.8",
-                                  }}/>
-
-                </div>
+        <div className="createpost-page">
+            <div className="createPost">
+                   {/* post-header */}
+            <div className="post-header">
+                <h4>Create New Post</h4>
+                <button id="post-btn" onClick={()=>{postDetails()}}>Share</button>
+            </div>
+              
+              {/* image preview */}
+            <div className="main-div">
+                <img id="output" src={uploadimage}/>
+                <input 
+                 type="file"
+                 accept="image/*"
+                 onChange={(event)=>{loadfile(event);
+                 setImage(event.target.files[0])
+                 }}/>
             </div>
 
-            {/* Gallery */}
-             <div className="gallery">
-               {pic.map((pics)=>{
-                return <img key={pics._id} src={pics.photo}
-                onClick={()=>{
-                  toggleDetails(pics)
-                 }}
-                className="item"></img>
-               })}
-             </div>
-             {show &&
-             <PostDetail item={posts} toggleDetails={toggleDetails} />
-             }   
+            {/* DETAILS */}
 
-             {
-              changePic &&
-              <ProfilePic changeprofile={changeprofile}/>
-             } 
+            <div className="details">
+                <div className="card-header">
+                    <div className="card-pic">
+                        <img src={rajesh_designs} />
+                    </div>
+                    <h5>Rajesh_Designs</h5>
+                </div>
+
+                <textarea value={body} onChange={(e)=>{
+                    setBody(e.target.value)
+                }}
+                typeof="text" placeholder="Write a caption..."></textarea>
+            </div>
         </div>
 
 
-                {/* FOOTER */}
+        {/* FOOTER */}
 <div className="footer-section">
-        <div className="footer">            
+        <div className="footer">
             <p>Meta</p>
-           <p>About</p>           
+            <p>About</p>
             <p>Blog</p>
             <p>Jobs</p>
             <p>Help</p>
@@ -192,10 +205,8 @@ function Profile(){
                 <p> &copy;2023 Exporz by Rajesh_designs</p>
             </div>
         </div> 
-       </div>
+        </div>
+    )
+}
 
-
-    );
-};
-
-export default Profile;
+export default Createpost;

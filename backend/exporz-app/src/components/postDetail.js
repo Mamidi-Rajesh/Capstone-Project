@@ -14,7 +14,7 @@ function PostDetail({item, toggleDetails}){
         // console.log(postId);
         if(window.confirm("Do you really want to delete this post ?")){
 
-        fetch(`http://localhost:5000/deletePost/${postId}`, {
+        fetch(`/deletePost/${postId}`, {
             method: "delete" ,
             headers: {
                 Authorization: "Bearer " + localStorage.getItem("jwt")

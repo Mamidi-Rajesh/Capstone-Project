@@ -1,72 +1,42 @@
 import React, {useEffect,useState} from "react";
 import "../css/Profile.css";
-import { useParams } from "react-router-dom";
+import ProfilePic from "../components/ProfilePic";
 
        // IMAGES
 // import rajesh_designs from "../img/rajesh designs logo.png";
-import PostDetail from "./postDetail";
+import PostDetail from "../components/postDetail";
+// import UserProfile from "./UserProfile";
 
-function UserProfile(){
+function Profile(){
     var picLink = "https://cdn-icons-png.flaticon.com/128/3177/3177440.png";
-    const {userid} = useParams();
-    
-    const [isFollow, setIsFollow] =useState(false);
+    const [pic, setPic]= useState([]);
     const [show, setShow]= useState(false);
-    const [user, setUser] = useState([])
     const [posts, setPosts]= useState([]);
-
-    const toggleDetails = (posts)=>{
-        if(show){
-            setShow(false);
-        }else{
-            setShow(true);
-            setPosts(posts);
-            console.log(posts)
-        }
-       };
+    const [user, setUser] = useState("");
+    const [changePic, setChangePic] = useState(false);
   
-//TO FOLLOW USER
-const followUser=(userId)=>{
-    fetch("http://localhost:5000/follow",{
-        method: "put",
-        headers:{
-            "Content-Type": "application/json",
-            Authorization: "Bearer " + localStorage.getItem("jwt")
-        },
-        body:JSON.stringify({
-            followId: userId,
-        }),
-    })
-    .then((res)=>res.json())
-    .then((data)=>{
-        console.log(data);
-        setIsFollow(true);
-    });
-};
+    const toggleDetails = (posts)=>{
+      if(show){
+          setShow(false);
+      }else{
+          setShow(true);
+          setPosts(posts);
+          console.log(posts)
+      }
+     };
+
+     const changeprofile = ()=>{
+      if(changePic){
+        setChangePic(false)
+      }else{
+         setChangePic(true) 
+      }
+     }
 
 
-//TO UNFOLLOW USER
-const unfollowUser=(userId)=>{
-    fetch("http://localhost:5000/unfollow",{
-        method: "put",
-        headers:{
-            "Content-Type": "application/json",
-            Authorization: "Bearer " + localStorage.getItem("jwt")
-        },
-        body:JSON.stringify({
-            followId: userId,
-        }),
-    })
-    .then((res)=>{res.json()})
-    .then((data)=>{
-        console.log(data);
-        setIsFollow(false);
-    });
-};
 
       useEffect(()=>{
-
-          fetch(`http://localhost:5000/user/${userid}`,{
+        fetch(`/user/${JSON.parse(localStorage.getItem("user"))._id}`, {
             headers: {
                 Authorization: "Bearer " + localStorage.getItem("jwt")
             }
@@ -74,47 +44,31 @@ const unfollowUser=(userId)=>{
           .then(res=>res.json())
           .then((result)=>{
             console.log(result);
-            setUser(result.user);
-            setPosts(result.post);
-            if(result.user.followers.includes(JSON.parse(localStorage.getItem("user"))._id)){
-                setIsFollow(true)
-            }
-          });
-      },[isFollow]);
+            setPic(result.post);
+            setUser(result.user)
+            console.log(pic)
+          })
+      },[])
 
     return(
-       <div className="userProfile-page">
+       <div className="profile-page">
          <div className="profile">
             {/* Profile-section */}
             <div className="profile-frame">
 
                 {/* profile-pic */}
                 <div className="profile-pic">
-                    <img src={user.Photo ? user.Photo : picLink} alt=""/>
+                    <img onClick={changeprofile}
+                    src={user.Photo ? user.Photo : picLink} alt=""/>
                 </div>
 
                 {/* profile-data */}
                 <div className="profile-data">
-                    <div style={{display:"flex", 
-                         alignItems:"center", 
-                         justifyContent:"space-between"}}>
-                    <h1>{user.name}</h1>
-                    <button className="followBtn"
-                    onClick={()=>{
-                        if(isFollow){
-                            unfollowUser(user._id)
-                        }else{
-                            followUser(user._id)
-                        }}
-                        }
-                        
-                    >{isFollow ? "Unfollow" : "Follow"}</button>
-                    </div>
-                  
+                    <h1>{JSON.parse(localStorage.getItem("user")).name}</h1>
                     <div className="profile-info">
-                        <p>{posts.length} posts</p>
-                        <p>{user.followers ? user.followers.length:"0"} followers</p>
-                        <p>{user.following ? user.following.length:"0"} following</p>
+                        <p style={{fontWeight: "bolder"}}>{pic ? pic.length : "0"} Posts</p>
+                        <p style={{fontWeight: "bolder"}}>{user.followers ? user.followers.length : "0"} followers</p>
+                        <p style={{fontWeight: "bolder"}}>{user.following ? user.following.length : "0"} following</p>
                     </div>
                     <hr style={{width:"120%",
                                 margin:" 25px auto",
@@ -126,22 +80,26 @@ const unfollowUser=(userId)=>{
 
             {/* Gallery */}
              <div className="gallery">
-               {posts.map((pics)=>{
+               {pic.map((pics)=>{
                 return <img key={pics._id} src={pics.photo}
-                // onClick={()=>{
-                //   toggleDetails(pics)
-                //  }}
-                className="item" alt=""  />
+                onClick={()=>{
+                  toggleDetails(pics)
+                 }}
+                className="item"></img>
                })}
              </div>
-             {/* {show &&
-             <PostDetail item={posts} toggleDetails={toggleDetails}/>
-             }     */}
+             {show &&
+             <PostDetail item={posts} toggleDetails={toggleDetails} />
+             }   
+
+             {
+              changePic &&
+              <ProfilePic changeprofile={changeprofile}/>
+             } 
         </div>
 
 
-
-                        {/* FOOTER */}
+                {/* FOOTER */}
 <div className="footer-section">
         <div className="footer">            
             <p>Meta</p>
@@ -235,7 +193,9 @@ const unfollowUser=(userId)=>{
             </div>
         </div> 
        </div>
+
+
     );
 };
 
-export default UserProfile;
+export default Profile;

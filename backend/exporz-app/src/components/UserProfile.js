@@ -1,122 +1,151 @@
-import React, { useEffect, useState } from "react";
-import "../css/Createpost.css";
-import { toast } from "react-toastify";
-import { useNavigate } from "react-router-dom";
+import React, {useEffect,useState} from "react";
+import "../css/Profile.css";
+import { useParams } from "react-router-dom";
 
-       //IMAGES
-//import pizza from "../img/food poster 2.png";
-import uploadimage from "../img/imageupload.png"
-import rajesh_designs from "../img/rajesh designs logo.png"; 
+       // IMAGES
+// import rajesh_designs from "../img/rajesh designs logo.png";
+import PostDetail from "./postDetail";
 
-function Createpost(){
-    const navigate = useNavigate();
-    const [body, setBody] = useState("");
-    const [image, setImage] = useState("");
-    const [url, setUrl] = useState("")
+function UserProfile(){
+    var picLink = "https://cdn-icons-png.flaticon.com/128/3177/3177440.png";
+    const {userid} = useParams();
+    
+    const [isFollow, setIsFollow] =useState(false);
+    const [show, setShow]= useState(false);
+    const [user, setUser] = useState([])
+    const [posts, setPosts]= useState([]);
 
-    //TOAST FUNCTION
-    const notifyA=(msg)=>toast.error(msg, {position: "top-center",})
-    const notifyB=(msg)=>toast.success(msg, {position: "top-center",})
-
-
-    useEffect(()=>{
-     //SAVING POST TO MONGODB
-     if(url){
-     fetch("http://localhost:5000/createPost", {
-        method: "post",
+    const toggleDetails = (posts)=>{
+        if(show){
+            setShow(false);
+        }else{
+            setShow(true);
+            setPosts(posts);
+            console.log(posts)
+        }
+       };
+  
+//TO FOLLOW USER
+const followUser=(userId)=>{
+    fetch("/follow",{
+        method: "put",
         headers:{
-        "Content-Type":"application/json",
-        "Authorization": "Bearer " + localStorage.getItem("jwt")
-    },
-    body:JSON.stringify({
-        body,
-        pic: url
+            "Content-Type": "application/json",
+            Authorization: "Bearer " + localStorage.getItem("jwt")
+        },
+        body:JSON.stringify({
+            followId: userId,
+        }),
     })
-    }).then(res=>res.json())
-    .then(data=>{if(data.error){
-        notifyA(data.error)
-    }else{
-        notifyB("Successfully Posted")
-        navigate("/")
-    }})
-    .catch(err=> console.log(err))
-}
-    },[url])
+    .then((res)=>res.json())
+    .then((data)=>{
+        console.log(data);
+        setIsFollow(true);
+    });
+};
 
 
+//TO UNFOLLOW USER
+const unfollowUser=(userId)=>{
+    fetch("http://localhost:5000/unfollow",{
+        method: "put",
+        headers:{
+            "Content-Type": "application/json",
+            Authorization: "Bearer " + localStorage.getItem("jwt")
+        },
+        body:JSON.stringify({
+            followId: userId,
+        }),
+    })
+    .then((res)=>{res.json()})
+    .then((data)=>{
+        console.log(data);
+        setIsFollow(false);
+    });
+};
 
+      useEffect(()=>{
 
-   // POSTING IMAGE TO CLOUDINARY
-    const postDetails = ()=> {
-        console.log(body,image);
-        const data = new FormData()
-        data.append("file", image)
-        data.append("upload_preset", "exporz-app")
-        data.append("clodu_name", "exporz-app")
-        fetch("https://api.cloudinary.com/v1_1/exporz-app/image/upload", {
-            method: "post",
-            body: data
-        }).then(res=>res.json())
-        .then(data => setUrl(data.url))
-        .catch(err => console.log(err))
-
-        
-    }
-
-    //ADDING PREVIEW
-    const loadfile = (event)=>{
-        var reader = new FileReader();
-        reader.onload = function(){
-          var output = document.getElementById('output');
-          output.src = reader.result;
-        };
-        reader.readAsDataURL(event.target.files[0]);
-    }
-
+          fetch(`/user/${userid}`,{
+            headers: {
+                Authorization: "Bearer " + localStorage.getItem("jwt")
+            }
+          })
+          .then(res=>res.json())
+          .then((result)=>{
+            console.log(result);
+            setUser(result.user);
+            setPosts(result.post);
+            if(result.user.followers.includes(JSON.parse(localStorage.getItem("user"))._id)){
+                setIsFollow(true)
+            }
+          });
+      },[isFollow]);
 
     return(
-        <div className="createpost-page">
-            <div className="createPost">
-                   {/* post-header */}
-            <div className="post-header">
-                <h4>Create New Post</h4>
-                <button id="post-btn" onClick={()=>{postDetails()}}>Share</button>
-            </div>
-              
-              {/* image preview */}
-            <div className="main-div">
-                <img id="output" src={uploadimage}/>
-                <input 
-                 type="file"
-                 accept="image/*"
-                 onChange={(event)=>{loadfile(event);
-                 setImage(event.target.files[0])
-                 }}/>
-            </div>
+       <div className="userProfile-page">
+         <div className="profile">
+            {/* Profile-section */}
+            <div className="profile-frame">
 
-            {/* DETAILS */}
-
-            <div className="details">
-                <div className="card-header">
-                    <div className="card-pic">
-                        <img src={rajesh_designs} />
-                    </div>
-                    <h5>Rajesh_Designs</h5>
+                {/* profile-pic */}
+                <div className="profile-pic">
+                    <img src={user.Photo ? user.Photo : picLink} alt=""/>
                 </div>
 
-                <textarea value={body} onChange={(e)=>{
-                    setBody(e.target.value)
-                }}
-                typeof="text" placeholder="Write a caption..."></textarea>
+                {/* profile-data */}
+                <div className="profile-data">
+                    <div style={{display:"flex", 
+                         alignItems:"center", 
+                         justifyContent:"space-between"}}>
+                    <h1>{user.name}</h1>
+                    <button className="followBtn"
+                    onClick={()=>{
+                        if(isFollow){
+                            unfollowUser(user._id)
+                        }else{
+                            followUser(user._id)
+                        }}
+                        }
+                        
+                    >{isFollow ? "Unfollow" : "Follow"}</button>
+                    </div>
+                  
+                    <div className="profile-info">
+                        <p>{posts.length} posts</p>
+                        <p>{user.followers ? user.followers.length:"0"} followers</p>
+                        <p>{user.following ? user.following.length:"0"} following</p>
+                    </div>
+                    <hr style={{width:"120%",
+                                margin:" 25px auto",
+                                opacity:"0.8",
+                                  }}/>
+
+                </div>
             </div>
+
+            {/* Gallery */}
+             <div className="gallery">
+               {posts.map((pics)=>{
+                return <img key={pics._id} src={pics.photo}
+                // onClick={()=>{
+                //   toggleDetails(pics)
+                //  }}
+                className="item" alt=""  />
+               })}
+             </div>
+             {/* {show &&
+             <PostDetail item={posts} toggleDetails={toggleDetails}/>
+             }     */}
         </div>
 
 
-        {/* FOOTER */}
+
+                        {/* FOOTER */}
 <div className="footer-section">
-        <div className="footer">
+        <div className="footer">            
             <p>Meta</p>
-            <p>About</p>
+           <p>About</p>           
             <p>Blog</p>
             <p>Jobs</p>
             <p>Help</p>
@@ -205,8 +234,8 @@ function Createpost(){
                 <p> &copy;2023 Exporz by Rajesh_designs</p>
             </div>
         </div> 
-        </div>
-    )
-}
+       </div>
+    );
+};
 
-export default Createpost;
+export default UserProfile;
